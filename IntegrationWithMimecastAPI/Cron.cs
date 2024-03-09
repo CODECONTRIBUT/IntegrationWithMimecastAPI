@@ -19,14 +19,23 @@ namespace IntegrationWithMimecastAPI
             try
             {
                 //Initialize
+                var heldEmailList = new List<MimecastHeldEmailItemModel>();
+                var receivedEmailCount = 0;
                 var totalEmailCount = 0;
                 var nextToken = "";
                 var pageSize = 0;
 
-                var request = CreateMimecastHeldEmailListRequest(nextToken);
-                var response = SendMimecastHeldEmailsRequest(request);
-                var emailModels =  DeconstructMimecastHeldEmails(response, ref pageSize, ref totalEmailCount, ref nextToken);
-                return emailModels;
+                //Execute the first request/response anyway, then check if need to request or not afterward.
+                do
+                {
+                    var request = CreateMimecastHeldEmailListRequest(nextToken);
+                    var response = SendMimecastHeldEmailsRequest(request);
+                    var emailModels = DeconstructMimecastHeldEmails(response, ref pageSize, ref totalEmailCount, ref nextToken);
+                    receivedEmailCount += pageSize;
+                    heldEmailList.AddRange(emailModels);
+                } while (receivedEmailCount >= 0 && receivedEmailCount < totalEmailCount);
+
+                return heldEmailList;
             }
             catch (Exception ex)
             {
@@ -115,6 +124,7 @@ namespace IntegrationWithMimecastAPI
         {
             try
             {
+                //Based on Mimecast Json data structure
                 var metaOfRequest = new Meta();
                 metaOfRequest.pagination = new Pagination()
                 {
